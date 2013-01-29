@@ -97,7 +97,7 @@ pagerduty_nagios flush [options]
 # Debian Sarge (Perl 5.8.4)
 # Ubuntu 9.04  (Perl 5.10.0)
 
-my $opt_api_base = "https://events.pagerduty.com/nagios/2010-04-15";
+my $opt_api_base = "http://events.pagerduty.com/nagios/2010-04-15";
 my %opt_fields;
 my $opt_help;
 my $opt_queue_dir = "/tmp/pagerduty_nagios";
@@ -223,7 +223,23 @@ sub enqueue_event {
 
 	# Apply any other variables that were passed in.
 	%event = (%event, %opt_fields);
-
+  
+  # Set pd_nagios_object if not set
+  unless ($event{"pd_nagios_object"}) {
+    if ($ENV{"NAGIOS_SERVICEDESC"}) {
+      # This is a service alert
+      $event{"pd_nagios_object"} = "service"
+    } else {
+      # This is a host alert
+      $event{"pd_nagios_object"} = "host"
+    }
+  }
+  
+  # Copy PagerDuty Service key
+  if ($event{"_CONTACTPAGERDUTY_SERVICE_KEY"}) {
+    $event{"CONTACTPAGER"} = $event{"_CONTACTPAGERDUTY_SERVICE_KEY"}
+  }
+  
 	$event{"pd_version"} = "1.0";
 	
 	# Right off the bat, enqueue the event.  Nothing tiem consuming should come
